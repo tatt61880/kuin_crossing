@@ -1,0 +1,105 @@
+24689222839,0
+ENV: Kuin (Windows 7 Home Premium(64bit), Intel(R) Core(TM) i5-3210M CPU @2.50GHz, RAM 2.00GB)
+
+わたし「できました」
+依頼者「お疲れ様です。気になる実行速度はどれくらいですか？」
+わたし「手元のノートパソコンで145ミリ秒程度です」
+依頼者「おお！それは速いですね。簡単でしたか？」
+わたし「えーと……最初は答えが出るまでに5分かかりました」
+依頼者「それは遅いですね」
+わたし「はい。その状態から、『Kuinで評価 5を取ろう！』と真剣に取り組みました」
+依頼者「Kuin！2013年9月17日に一般公開されたプログラミング言語ですね」
+わたし「その通りです。やはりご存じだったのですね」
+依頼者「コードを見せて頂けますか？」
+わたし「はい。そうおっしゃると思って、読みやすく書いたつもりです。
+       こちらが、ソースコード crossing.kn になります」
+依頼者「お、しっかり例外処理もされていますね。これなら安心して使えそうです」
+                                  ミッションはこのようにして終わりました……。
+{{{
+	crossing.kn for Kuin
+		回答者: Tatt (@tatt61880)
+	クロッシング問題:
+		出題者: 結城浩さん (@hyuki)
+		http://www.hyuki.com/codeiq/
+}}}
+const InputFilePath: []char :: "./crossing.txt"
+const MaxLineNum: int :: 1000000 { 行数の上限 }
+var Answer: int { 答えとなる交差点の数 }
+var Temp: []int
+
+func Main()
+	var startTime: int :: Kuin@SysTime()
+
+	{ numsに各行の数値を代入します。}
+	var nums: []int :: #[@MaxLineNum]int
+	var num: int :: 0
+	var numsLen: int :: 0
+	try e
+		foreach a(File@ReadFile(@InputFilePath))
+			switch d(a$ int - '0'$ int)
+			case (0 to 9)
+				do num :: num * 10 + d
+			default
+				if (num <> 0)
+					do nums[numsLen] :$ num
+					do numsLen :+ 1
+				end if
+			end switch
+		end foreach
+	catch (3002)
+		do Dbg@Log("[Error: " ~ e.Code.ToStr() ~ "] ファイルの行数が想定している上限(" ~ @MaxLineNum.ToStr() ~ ")よりも大きいです: " ~ @InputFilePath)
+		return
+	catch (16#c0000005)
+		do Dbg@Log("[Error: 16#" ~ e.Code.ToStrF("x") ~ "] ファイル読み込みエラー: " ~ @InputFilePath)
+		return
+	end try
+
+	{ numsをソートするとすべての交差点がほどけます。マージソートをしながら、ほどけていく交差点の数を数えます。 }
+	do @Answer :: 0
+	do @Temp :: #[numsLen]int
+	do @MergeSort(nums, 0, numsLen - 1)
+
+	var endTime: int :: Kuin@SysTime()
+	var processTime: int :: (endTime - startTime) { 経過時間[ミリ秒] }
+	do Dbg@Log(@Answer.ToStr() ~ "," ~ (processTime / 1000).ToStr())
+	do Dbg@Log("実行時間: " ~ processTime.ToStr() ~ "ミリ秒")
+end func
+
+func MergeSort(array: []int, left: int, right: int)
+	{ ソート範囲の要素数が1つか2つの場合は、このifブロック内で処理を済ませます。 }
+	if (right - left < 2)
+		if (array[left] > array[right])
+			do array[left] :$ array[right]
+			do @Answer :+ 1 { 交差点が1つほどけます }
+		end if
+		return
+	end if
+
+	var mid: int :: (left + right) / 2
+	do @MergeSort(array, left, mid)
+	do @MergeSort(array, mid + 1, right)
+
+	{ 左半分はそのままTempにコピーします。 }
+	for i(left, mid)
+		do @Temp[i] :: array[i]
+	end for
+	{ 右半分は逆順でTempにコピーします。 }
+	var j: int :: right
+	for i(mid + 1, right)
+		do @Temp[i] :: array[j]
+		do j :- 1
+	end for
+
+	var l: int :: left
+	var r: int :: right
+	for i(left, right)
+		if (@Temp[l] > @Temp[r])
+			do @Answer :+ mid - l + 1 { @Temp[r]が左半分の右から(mid - l + 1)個の数を跨いで、(mid - l + 1)個の交差点がほどけます。 }
+			do array[i] :: @Temp[r]
+			do r :- 1
+		else
+			do array[i] :: @Temp[l]
+			do l :+ 1
+		end if
+	end for
+end func
