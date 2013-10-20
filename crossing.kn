@@ -1,0 +1,96 @@
+{{{
+	crossing.kn for Kuin
+		回答者: Tatt (@tatt61880)
+	クロッシング問題:
+		出題者: 結城浩さん (@hyuki)
+		http://www.hyuki.com/codeiq/
+}}}
+const InputFilePath: []char :: "./crossing.txt"
+const OutputFilePath: []char :: "./answer.txt"
+const MaxLineNum: int :: 400000
+var Answer: int { 答えとなる交差点の数 }
+var Temp: []int
+
+func Main()
+	var startTime: int :: Time@Sys()
+
+	{ numsに各行の数値を代入します。}
+	var nums: []int :: #[@MaxLineNum]int
+	var num: int :: 0
+	var numsLen: int :: 0
+	try e
+		foreach a(File@ReadFile(@InputFilePath))
+			switch d(a$ int - '0'$ int)
+			case(0 to 9)
+				do num :: num * 10 + d
+			default
+				if(num <> 0)
+					do nums[numsLen] :$ num
+					do numsLen :+ 1
+				end if
+			end switch
+		end foreach
+	catch(3002)
+		do Dbg@Log("[Error: " ~ e.Code.ToStr() ~ "] ファイルの行数が想定よりも大きいです: " ~ @InputFilePath)
+		return
+	catch(16#c0000005)
+		do Dbg@Log("[Error: 16#" ~ e.Code.ToStrF("x") ~ "] ファイル読み込みエラー: " ~ @InputFilePath)
+		return
+	end try
+
+	{ numsをソートするとすべての交差点がほどけます。マージソートをしながら、ほどけていく交差点の数を数えます。 }
+	do @Answer :: 0
+	do @Temp :: #[numsLen]int
+	do @MergeSort(nums, 0, numsLen - 1)
+
+	var outputFileStream: File@CSaveStream
+	do outputFileStream :: File@SaveFileStream(@OutputFilePath, false)
+	var endTime: int :: Time@Sys()
+	var processTime: int :: (endTime - startTime) { 経過時間[ミリ秒] }
+	var outputStr: []char :: "" {
+	} ~ @Answer.ToStr() ~ "," ~ (processTime / 1000).ToStr() ~ "\n" {
+	} ~ "ENV: Kuin\n" {
+	} ~ "\n" {
+	} ~ "実行時間: " ~ processTime.ToStr() ~ "ミリ秒" {
+	}
+	do outputFileStream.WriteStr(outputStr)
+end func
+
+func MergeSort(array: []int, left: int, right: int)
+	{ ソート範囲の要素数が1つか2つの場合は、このifブロック内で処理を済ませます。 }
+	if(right - left < 2)
+		if(array[left] > array[right])
+			do array[left] :$ array[right]
+			do @Answer :+ 1 { 交差点が1つほどけます }
+		end if
+		return
+	end if
+
+	var mid: int :: (left + right) / 2
+	do @MergeSort(array, left, mid)
+	do @MergeSort(array, mid + 1, right)
+
+	{ 左半分はそのままTempにコピーします。 }
+	for i(left, mid)
+		do @Temp[i] :: array[i]
+	end for
+	{ 右半分は逆順でTempにコピーします。 }
+	var j: int :: right
+	for i(mid + 1, right)
+		do @Temp[i] :: array[j]
+		do j :- 1
+	end for
+
+	var l: int :: left
+	var r: int :: right
+	for i(left, right)
+		if(@Temp[l] > @Temp[r])
+			do @Answer :+ mid - l + 1 { @Temp[r]が左半分の右から(mid - l + 1)個の数を跨いで、(mid - l + 1)個の交差点がほどけます。 }
+			do array[i] :: @Temp[r]
+			do r :- 1
+		else
+			do array[i] :: @Temp[l]
+			do l :+ 1
+		end if
+	end for
+end func
